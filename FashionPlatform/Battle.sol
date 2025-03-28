@@ -62,14 +62,62 @@ contract Battle is ERC721URIStorage, Ownable(msg.sender) {
         return designs;
     }
 
-    function submitDesign(uint256 battleId, string memory designURI) external {
+     function submitDesign(uint256 _battleId,string memory _designURI) external {
+        require(battles[_battleId].startTime != 0, "Battle does not exist");
+        require(battles[_battleId].ended == false, "Battle has already ended");
+        require(block.timestamp >= battles[_battleId].startTime,"Battle not started yet");
+        require(block.timestamp <= battles[_battleId].endTime,"Battle has already ended");
+
+        Battle storage battle = battles[_battleId];
+        uint256 designId = battle.designCount;
+
+        battle.designs[designId] = Design({
+            creator: msg.sender,
+            designURI: _designURI,
+            votes: 0
+        });
+
+        battle.designCount++;
+
+        emit DesignSubmitted(_battleId, designId, msg.sender, _designURI);
+    }
    
 
-    function vote(uint256 battleId, uint256 designId) external {
-       
+    function vote(uint256 _battleId, uint256 _designId) external {
+        require(battles[_battleId].startTime != 0, "Battle does not exist");
+        require(battles[_battleId].ended == false, "Battle has already ended");
+        require(block.timestamp >= battles[_battleId].startTime,"Battle not started yet");
+        require(block.timestamp <= battles[_battleId].endTime,"Battle has already ended");
+
+        require(battles[_battleId].hasVoted[msg.sender] == false,"A voter can vote only once");
+
+        Battle storage battle = battles[_battleId];
+        require(_designId < battle.designCount, "Invalid Design ID");
+        battle.hasVoted[msg.sender] = true;
+        battle.designs[_designId].votes += 1;
+
+        emit Voted(_battleId, _designId, msg.sender);
     }
 
-    function declareWinner(uint256 battleId) external {
-     
+     function declareWinner(uint256 _battleId) external {
+        require(battles[_battleId].startTime != 0, "Battle does not exist");
+        require(block.timestamp > battles[_battleId].endTime,"Battle is still ongoing");
+        require(battles[_battleId].ended = false, "Winner already declared");
+
+        Battle storage battle = battles[_battleId];
+        uint256 designCount = battle.designCount;
+        uint256 maxvotes = 0;
+        uint256 winningId = 0;
+        address winner = address(0);
+
+        for (uint256 i = 0; i < designCount; i++) {
+            if (battle.designs[i].votes > maxvotes) {
+                maxvotes = battle.designs[i].votes;
+                winningId = i;
+                winner = battle.designs[i].creator;
+            }
+        }
+        battle.ended = true;
+        emit WinnerDeclared(_battleId, winningId, winner);
     }
 }
