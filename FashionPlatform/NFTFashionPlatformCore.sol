@@ -72,6 +72,23 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
         );
         require(_price > 0, "Price must be greater than 0.");
 
+        uint256 tokenId = tokenCounter;
+        tokenCounter++;
+        _safeMint(msg.sender, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
+
+        designs[tokenId] = Design({
+            tokenId: tokenId,
+            designURI: _tokenURI,
+            creator: msg.sender,
+            category: _category,
+            designType: _designType,
+            price: _price,
+            likes: 0
+        });
+
+        userOwnedDesigns[msg.sender].push(tokenId);
+        emit DesignUploaded(tokenId, msg.sender, _category, _designType);
 
     }
 
