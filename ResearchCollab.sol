@@ -65,16 +65,26 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     function assignCollaborator(uint256 _tokenId, address _collaborator, uint64 _expires) external {
+    require(ownerOf(_tokenId) == msg.sender, "You are not the owner,You cannot assign a collaborator");
+    require(_collaborator != msg.sender, "Owner cannot be the collaborator");
+    require(_expires > block.timestamp, "Already expired");
+    require(collaborators[_tokenId].expires < block.timestamp, "An active collaborator already exists");
     
+
+    collaborators[_tokenId] = Collaborator({
+        collaborator: _collaborator,
+        expires: _expires
+    });
     }
     
     function getCollaborations(address _user) external view returns (uint256[] memory) {
         return userCollaborations[_user];
     }
     
-    function _isOwnerOrCollaborator(uint256 _tokenId, address _account) public view returns (bool) {
-    
-    }
+   function _isOwnerOrCollaborator(uint256 _tokenId, address _account) public view returns (bool) {
+    Collaborator memory collaborator = collaborators[_tokenId];
+    return (ownerOf(_tokenId) == _account || (collaborator.collaborator == _account && collaborator.expires > block.timestamp));
+}
     
     function setUpdateReward(uint256 _newReward) external onlyOwner {
         updateReward = _newReward;
