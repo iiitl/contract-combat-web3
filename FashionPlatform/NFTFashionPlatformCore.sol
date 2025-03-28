@@ -54,7 +54,7 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
         emit ArtistRegistered(msg.sender, _name);
     }
 
-    function singleUploadDesign(
+        function singleUploadDesign(
         string memory _tokenURI,
         string memory _category,
         string memory _designType,
@@ -72,8 +72,25 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
         );
         require(_price > 0, "Price must be greater than 0.");
 
+        uint256 newTokenId = tokenCounter;
+        _safeMint(msg.sender, newTokenId);
+        _setTokenURI(newTokenId, _tokenURI);
 
-    }
+        designs[newTokenId] = Design({
+            tokenId: newTokenId,
+            designURI: _tokenURI,
+            creator: msg.sender,
+            category: _category,
+            designType: _designType,
+            price: _price,
+            likes: 0
+        });
+
+    userOwnedDesigns[msg.sender].push(newTokenId);
+    tokenCounter++;
+
+    emit DesignUploaded(newTokenId, msg.sender, _category, _designType);
+}
 
     function buyDesign(uint256 _tokenId) external payable {
         Design memory design = designs[_tokenId];
