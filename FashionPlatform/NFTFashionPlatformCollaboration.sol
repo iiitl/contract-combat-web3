@@ -31,7 +31,35 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
         address[] memory _collaborators,
         uint256[] memory _shares
     ) external onlyRegisteredArtist {
-    
+        require(_collaborators.length > 0, "At least one collaborator required");
+        
+        uint256 totalShares = 0;
+        for (uint256 i = 0; i < _collaborators.length; i++) {
+            require(_collaborators[i] != address(0), "Collaborator address cannot be zero");
+            require(_shares[i] > 0, "Share must be greater than zero");
+            totalShares += _shares[i];
+        }
+        require(totalShares == 100, "Total shares must equal 100%");
+
+        uint256 tokenId = collaborationCounter;
+        _mint(msg.sender, tokenId);
+        _setTokenURI(tokenId, _tokenURI);
+
+        Collaboration storage newCollaboration = collaborations[tokenId];
+        newCollaboration.tokenId = tokenId;
+        newCollaboration.collabURI = _tokenURI;
+        
+        for (uint256 i = 0; i < _collaborators.length; i++) {
+            newCollaboration.collaborators.push(_collaborators[i]);
+        }
+        for (uint256 i = 0; i < _shares.length; i++) {
+            newCollaboration.shares.push(_shares[i]);
+        }
+
+        emit CollaborationCreated(tokenId, _collaborators, _shares);
+
+        collaborationCounter++;
+
     }
 
 
