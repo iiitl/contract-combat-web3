@@ -106,6 +106,12 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
     
 }
  function canViewPremiumNFTs(address artist, address viewer) public view returns (bool) {
-  
+  uint256[] memory membershipNFTs = artistMembershipNFTs[viewer];
+    for (uint256 i = 0; i < membershipNFTs.length; i++) {
+        if (ownerOf(membershipNFTs[i]) == viewer) {
+            return true;
+        }
+    }
+    return false;
     }
 }
