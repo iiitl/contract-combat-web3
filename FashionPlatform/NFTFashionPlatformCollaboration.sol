@@ -27,12 +27,40 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
     // Existing Collaboration Functions
 
     function uploadDesignWithCollaboration(
-        string memory _tokenURI,
-        address[] memory _collaborators,
-        uint256[] memory _shares
-    ) external onlyRegisteredArtist {
-    
+    string memory _tokenURI,
+    address[] memory _collaborators,
+    uint256[] memory _shares
+) external onlyRegisteredArtist {
+    require(_collaborators.length > 0, "At least one collaborator is required.");
+    require(_collaborators.length == _shares.length, "Collaborators and shares count mismatch.");
+    uint256 totalShares = 0;
+    for (uint256 i = 0; i < _collaborators.length; i++) {
+        require(_collaborators[i] != address(0), "Collaborator address cannot be zero.");
+        require(artists[_collaborators[i]].isRegistered, "All collaborators must be registered artists.");
+        require(_shares[i] > 0, "Each collaborator's share must be greater than zero.");
+        totalShares += _shares[i];
     }
+    require(totalShares == 100, "Total shares must add up to 100%.");
+    uint256 newTokenId = collaborationCounter++;
+    _safeMint(msg.sender, newTokenId);
+    _setTokenURI(newTokenId, _tokenURI);
+    designs[newTokenId] = Design({
+        tokenId: newTokenId,
+        designer: msg.sender,
+        price: 0, 
+        isForSale: false,
+        tokenURI: _tokenURI
+    });
+    userOwnedDesigns[msg.sender].push(newTokenId);
+    collaborations[newTokenId] = Collaboration({
+        tokenId: newTokenId,
+        collabURI: _tokenURI,
+        collaborators: _collaborators,
+        shares: _shares
+    });
+    emit CollaborationCreated(newTokenId, _collaborators, _shares);
+}
+}
 
 
 
