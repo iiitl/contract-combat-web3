@@ -66,15 +66,46 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     
     function assignCollaborator(uint256 _tokenId, address _collaborator, uint64 _expires) external {
     
+    require(ownerOf(_tokenId) == msg.sender, "Only token owner can assign collaborators");
+    require(_collaborator != address(0), "Invalid collaborator address");
+    require(_collaborator != msg.sender, "Cannot assign yourself as collaborator");
+    require(_expires > block.timestamp, "Expiration must be in the future");
+    require(_expires < block.timestamp + 365 days, "Max collaboration duration is 1 year");
+
+    collaborators[_tokenId] = Collaborator(_collaborator, _expires);
+    
+    uint256[] storage collabList = userCollaborations[_collaborator];
+    bool alreadyExists = false;
+    
+    for (uint i = 0; i < collabList.length; i++) {
+        if (collabList[i] == _tokenId) {
+            alreadyExists = true;
+            break;
+        }
     }
+    
+    if (!alreadyExists) {
+        userCollaborations[_collaborator].push(_tokenId);
+    }
+
+    emit CollaboratorAssigned(_tokenId, _collaborator, _expires);
+}
     
     function getCollaborations(address _user) external view returns (uint256[] memory) {
         return userCollaborations[_user];
     }
     
     function _isOwnerOrCollaborator(uint256 _tokenId, address _account) public view returns (bool) {
-    
+    if (ownerOf(_tokenId) == _account) {
+        return true;
     }
+    
+    Collaborator memory collab = collaborators[_tokenId];
+    if (collab.collaborator == _account && collab.expires >= block.timestamp) {
+        return true;
+    }
+    return false;
+}
     
     function setUpdateReward(uint256 _newReward) external onlyOwner {
         updateReward = _newReward;
