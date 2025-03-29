@@ -2,15 +2,13 @@ from genlayer import *
 
 @gl.contract
 class MyContract:
-    variable: str
-
+    variable: str = gl.public_state()
     def __init__(self):
-        self.variable = "hello"
-
-    @gl.public.view
+        super().__init__()  # first we have initialize the code properly
+        self.variable = "hello"  # then initialize the state setting
+    @gl.view
     def read_method(self) -> str:
         return self.variable
-
-    @gl.public.write
-    def write_method(self,new_value:str) -> None:
-        self.variable = "world"
+    @gl.write
+    def write_method(self, new_value: str) -> None:
+        self.variable = new_value  # now use the passed value
