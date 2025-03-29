@@ -31,7 +31,25 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
         address[] memory _collaborators,
         uint256[] memory _shares
     ) external onlyRegisteredArtist {
-    
+        require(_collaborators.length > 0, "At least one collaborator required.");
+        require(_collaborators.length == _shares.length, "Mismatched collaborators and shares.");
+        
+        uint256 totalShares = 0;
+        for (uint256 i = 0; i < _shares.length; i++) {
+            totalShares += _shares[i];
+        }
+        require(totalShares == 100, "Shares must sum up to 100%.");
+
+        uint256 tokenId = mintNFT(msg.sender, _tokenURI);
+
+        collaborations[tokenId] = Collaboration({
+            tokenId: tokenId,
+            collabURI: _tokenURI,
+            collaborators: _collaborators,
+            shares: _shares
+        });
+
+        emit CollaborationCreated(tokenId, _collaborators, _shares);
     }
 
 
