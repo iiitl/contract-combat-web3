@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-
-contract TwitterX is ERC721URIStorage {
-    constructor() ERC721("Decentratwitter", "DAPP") {}
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+contract TwitterX is ERC1155, Ownable {
+    constructor() ERC1155("Decentratwitter", "DAPP") {}
 
     uint256 public tokenCount;
     uint256 public postCount;
@@ -32,10 +32,9 @@ contract TwitterX is ERC721URIStorage {
         address payable author
     );
 
-    function mint(string memory _tokenURI) external returns (uint256){
+    function mint(uint256 amount) external returns (uint256){
         tokenCount++;
-        _safeMint(msg.sender,tokenCount);
-        _setTokenURI(tokenCount, _tokenURI);
+        _mint(msg.sender, tokenCount, amount, "");
         setProfile(tokenCount);
         return (tokenCount);
 
