@@ -15,7 +15,7 @@ use of _safemint in Researchcollab :
  
   The use of _safeMint ensures that:
 
-                 ![image](https://github.com/user-attachments/assets/0dec31b9-31fb-4e12-8938-a22fa615c0c5)
+ ![image](https://github.com/user-attachments/assets/0dec31b9-31fb-4e12-8938-a22fa615c0c5)
 
 
   1.The NFT is properly assigned to the creator (msg.sender).
@@ -29,7 +29,7 @@ use of _safemint in Researchcollab :
 
 use of _safeMint in TwitterX.sol : 
      
-                 ![image](https://github.com/user-attachments/assets/1b05a083-bb2c-4d16-8985-5f05a0e0e759)
+![image](https://github.com/user-attachments/assets/1b05a083-bb2c-4d16-8985-5f05a0e0e759)
 
 The function mint is responsible for minting a new NFT profile for a user. The _safeMint function is used to ensure:
 
@@ -53,7 +53,7 @@ The function mint is responsible for minting a new NFT profile for a user. The _
 In your ResearchCollab contract, _setTokenURI is used to store and update the metadata URI of each NFT. It comes from the ERC721URIStorage extension of OpenZeppelin's ERC721 contract.
 
 
-                  ![image](https://github.com/user-attachments/assets/ca68f0f7-952f-480d-a5aa-427dfb75a513)
+![image](https://github.com/user-attachments/assets/ca68f0f7-952f-480d-a5aa-427dfb75a513)
 
 
 What Does _setTokenURI Do?
@@ -72,7 +72,7 @@ The function _setTokenURI(uint256 tokenId, string memory _tokenURI):
 In Twitterx.sol contract : 
 
 
-               ![image](https://github.com/user-attachments/assets/2fe38808-ae63-46ed-8776-5e5572e134ed)
+![image](https://github.com/user-attachments/assets/2fe38808-ae63-46ed-8776-5e5572e134ed)
 
 
    1._setTokenURI() binds NFT metadata to a token
