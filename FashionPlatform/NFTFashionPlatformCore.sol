@@ -103,7 +103,16 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
         emit CommunityPostAdded(_tokenId, _content);
     }
     function mintMembershipNFT(address artist) external {
-    
+        require(artists[artist].registered == true, "Artist must be registered");
+        require(artist == msg.sender, "You are not the artist,you can not mint");
+
+        uint256 tokenId=tokenCounter;
+        tokenCounter++;
+        _mint(msg.sender, tokenId);
+       _setTokenURI(tokenId, artists[artist].profileURI);
+        artistMembershipNFTs[artist].push(tokenId);
+
+        emit MembershipNFTMinted(artist, msg.sender, tokenId);
 }
  function canViewPremiumNFTs(address artist, address viewer) public view returns (bool) {
   
