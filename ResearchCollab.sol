@@ -17,9 +17,9 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     uint256 private _nextTokenId;
-    mapping(uint256 => Research) public researchData;
-    mapping(uint256 => Collaborator) public collaborators;
-    mapping(address => uint256[]) public userCollaborations;
+    mapping(uint256 => Research) private _researchData;
+    mapping(uint256 => Collaborator[]) private _collaborators;
+    mapping(address => mapping(uint256 => bool)) private _userCollaborations;
     
     uint256 public updateReward = 100 * 10**18;
     
@@ -65,7 +65,21 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     function assignCollaborator(uint256 _tokenId, address _collaborator, uint64 _expires) external {
-    
+        require(_exists(_tokenId), "Research does not exist");
+        require(ownerOf(_tokenId) == msg.sender, "Only owner can assign collaborators");
+        require(_collaborator != address(0), "Invalid collaborator address");
+        require(_expires > block.timestamp, "Expiration must be in the future");
+        for (uint i = 0; i < _collaborators[_tokenId].length; i++) {
+            if (_collaborators[_tokenId][i].collaborator == _collaborator) {
+                _collaborators[_tokenId][i].expires = _expires;
+                emit CollaboratorAssigned(_tokenId, _collaborator, _expires);
+                return;
+            }
+        }
+        _collaborators[_tokenId].push(Collaborator(_collaborator, _expires));
+        _userCollaborations[_collaborator][_tokenId] = true;
+        emit CollaboratorAssigned(_tokenId, _collaborator, _expires);
+    }
     }
     
     function getCollaborations(address _user) external view returns (uint256[] memory) {
