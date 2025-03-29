@@ -4,8 +4,8 @@ pragma solidity >=0.7.0 <0.9.0;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 contract TwitterX is ERC1155, Ownable {
-    constructor() ERC1155("Decentratwitter", "DAPP") {}
-
+    constructor() ERC1155("https://example.com/api/token/{id}.json") {}
+    
     uint256 public tokenCount;
     uint256 public postCount;
 
@@ -41,7 +41,7 @@ contract TwitterX is ERC1155, Ownable {
     }
 
     function setProfile(uint256 _id) public {
-        require(ownerOf(_id) == msg.sender, "Must own the nft you want to set as your profile.");
+        require(balanceOf(msg.sender, _id) > 0, "Must own the NFT to set as profile.");
         profiles[msg.sender]=_id;
 
     }
@@ -54,21 +54,25 @@ contract TwitterX is ERC1155, Ownable {
 
     }
     function getMyNfts() external view returns (uint256[] memory _ids){
-        _ids = new uint256[](balanceOf(msg.sender));
-        uint256 currentIndex;
-        uint256 _tokenCount = tokenCount;
-        for(uint256 i=0; i<_tokenCount; i++){
-            if(ownerOf(i+1) == msg.sender){
-                _ids[currentIndex] = i+1;
-                currentIndex++;
+        uint256 count = 0;
+        for (uint256 i = 1; i <= tokenCount; i++) {
+            if (balanceOf(msg.sender, i) > 0) {
+                count++;
+            }
+        }
+
+        _ids = new uint256[](count);
+        uint256 index = 0;
+        for (uint256 i = 1; i <= tokenCount; i++) {
+            if (balanceOf(msg.sender, i) > 0) {
+                _ids[index] = i;
+                index++;
             }
         }
 
     }
     function uploadPost (string memory _postHash) external {
-        require(
-            balanceOf(msg.sender)>0, "Must own a nft to post"
-        );
+        require(balanceOf(msg.sender, profiles[msg.sender]) > 0, "Must own an NFT to post.");
         require(bytes(_postHash).length > 0, "Cannot pass empty hash");
         postCount++;
         posts[postCount] = Post(postCount, _postHash, 0,payable(msg.sender));
@@ -84,7 +88,7 @@ contract TwitterX is ERC1155, Ownable {
 
         _post.author.transfer(msg.value);
         _post.tipAmount += msg.value;
-        posts[_id] = _post;
+
         emit PostTipped(_id, _post.hash, _post.tipAmount, _post.author);
     }
 
