@@ -33,6 +33,7 @@ contract TwitterX is ERC721URIStorage {
     );
 
     function mint(string memory _tokenURI) external returns (uint256){
+        require(bytes(_tokenURI).length>0, "token uri must not be empty");
         tokenCount++;
         _safeMint(msg.sender,tokenCount);
         _setTokenURI(tokenCount, _tokenURI);
@@ -47,7 +48,10 @@ contract TwitterX is ERC721URIStorage {
 
     }
 
-    function getAllPosts() external  view returns (Post[] memory _posts){
+    function getAllPosts(uint256 _start, uint256 _limit) external  view returns (Post[] memory _posts){
+        uint256 end=_start+ _limit;
+        if(end> postCount) end=postCount;
+        uint256 count = end - _start;
         _posts = new Post[](postCount);
         for(uint256 i=0; i<_posts.length; i++){
             _posts[i] = posts[i+1];
@@ -56,7 +60,7 @@ contract TwitterX is ERC721URIStorage {
     }
     function getMyNfts() external view returns (uint256[] memory _ids){
         _ids = new uint256[](balanceOf(msg.sender));
-        uint256 currentIndex;
+        uint256 currentIndex=0;
         uint256 _tokenCount = tokenCount;
         for(uint256 i=0; i<_tokenCount; i++){
             if(ownerOf(i+1) == msg.sender){
@@ -80,12 +84,11 @@ contract TwitterX is ERC721URIStorage {
     function tipPostOwner(uint256 _id) external payable {
         require(_id>0&&_id<=postCount, "Invalid");
 
-        Post memory _post = posts[_id];
+        Post storage _post = posts[_id];
         require(_post.author != msg.sender, "Cant tip your post");
-
-        _post.author.transfer(msg.value);
+             
         _post.tipAmount += msg.value;
-        posts[_id] = _post;
+        _post.author.transfer(msg.value);
         emit PostTipped(_id, _post.hash, _post.tipAmount, _post.author);
     }
 

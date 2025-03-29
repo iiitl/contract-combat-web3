@@ -24,15 +24,38 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
         collaborationCounter = 1;
     }
 
-    // Existing Collaboration Functions
+    // Modified Collaboration Functions
 
     function uploadDesignWithCollaboration(
-        string memory _tokenURI,
-        address[] memory _collaborators,
-        uint256[] memory _shares
-    ) external onlyRegisteredArtist {
-    
+    string memory _tokenURI,
+    address[] memory _collaborators,
+    uint256[] memory _shares
+) external onlyRegisteredArtist {
+    for (uint256 i = 0; i < _collaborators.length; i++) {
+        require(_collaborators[i] != address(0), "Invalid address");
     }
+    require(_collaborators.length == _shares.length, "Mismatched arrays");
+    require(_collaborators.length > 0, "No collaborators");
+    
+    uint256 totalShares;
+    for (uint256 i = 0; i < _shares.length; i++) {
+        totalShares += _shares[i];
+    }
+    require(totalShares == 100, "Shares must sum to 100%");
+
+    uint256 tokenId = collaborationCounter++;
+    _mint(msg.sender, tokenId);
+    _setTokenURI(tokenId, _tokenURI);
+
+    collaborations[tokenId] = Collaboration({
+        tokenId: tokenId,
+        collabURI: _tokenURI,
+        collaborators: _collaborators,
+        shares: _shares
+    });
+
+    emit CollaborationCreated(tokenId, _collaborators, _shares);
+}
 
 
 
@@ -43,22 +66,22 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
 
         for (uint256 i = 0; i < collab.collaborators.length; i++) {
             payable(collab.collaborators[i]).transfer((_amount * collab.shares[i]) / 100);
+            emit ProfitDistributed(_tokenId, collab.collaborators[i], share);
         }
     }
 
     // Function to buy a collaboration design
-    function buyCollaboration(uint256 _tokenId) external payable {
-        Collaboration memory collab = collaborations[_tokenId];
-        require(collab.tokenId != 0, "Collaboration does not exist.");
-
-        Design memory design = designs[_tokenId];
-        require(msg.value >= design.price, "Insufficient Ether sent.");
-
-        distributeProfit(_tokenId, msg.value);
-
-        _transfer(ownerOf(_tokenId), msg.sender, _tokenId);
+    function buyCollaboration(uint256 _tokenId) external payable nonReentrant {
+        
+        require(design.price>0, "Item not for sale");
+        
+        address previousOwner = ownerOf(_tokenId);
+        _transfer(previousOwner, msg.sender, _tokenId);
         userOwnedDesigns[msg.sender].push(_tokenId);
-
+        
+        
+        distributeProfit(_tokenId, msg.value);
+        
         emit DesignBought(_tokenId, msg.sender);
     }
 
