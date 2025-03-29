@@ -2,15 +2,16 @@ from genlayer import *
 
 @gl.contract
 class MyContract:
-    variable: str
+    variable: gl.Storage[str]
 
     def __init__(self):
-        self.variable = "hello"
+        gl.initialize(self)
+        self.variable.set("hello")
 
     @gl.public.view
     def read_method(self) -> str:
-        return self.variable
+        return self.variable.get()
 
     @gl.public.write
-    def write_method(self,new_value:str) -> None:
-        self.variable = "world"
+    def write_method(self, new_value: str) -> None:
+        self.variable.set(new_value)
