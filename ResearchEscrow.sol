@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract ResearchEscrow is ReentrancyGuard, Ownable {
@@ -20,6 +21,7 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     uint256 private nextProjectId;
     mapping(uint256 => ResearchProject) public projects;
     mapping(uint256 => mapping(address => uint256)) public contributions; 
+    IERC20 public rewardToken;
     
     uint256 public fundingReward = 50 * 10**18; // 50 tokens for funding a project
     
@@ -27,6 +29,12 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     event Funded(uint256 indexed projectId, address indexed backer, uint256 amount);
     event FundsReleased(uint256 indexed projectId, uint256 amount);
     event Refunded(uint256 indexed projectId, address indexed backer, uint256 amount);
+    event RewardDistributed(address indexed contributor, uint256 amount);
+
+     constructor(address _rewardToken) {
+     _transferOwnership(msg.sender); 
+    rewardToken = IERC20(_rewardToken);
+}
 
     constructor( ) Ownable(msg.sender){
     }
@@ -50,6 +58,12 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         emit ProjectCreated(projectId, _title, msg.sender, _targetAmount, block.timestamp + _duration);
     }
 
+    function distributeFundingReward(address _contributor) internal {
+    require(rewardToken.balanceOf(address(this)) >= fundingReward, "Not enough reward tokens");
+    require(rewardToken.transfer(_contributor, fundingReward), "Token transfer failed");
+    emit RewardDistributed(_contributor, fundingReward);
+}
+
     function contributeToResearch(uint256 _projectId) external payable nonReentrant {
         ResearchProject storage project = projects[_projectId];
         require(block.timestamp < project.deadline, "Crowdfunding ended");
@@ -63,7 +77,8 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         if (project.currentAmount >= project.targetAmount) {
             project.funded = true;
         }
-
+        
+         distributeFundingReward(msg.sender);
         emit Funded(_projectId, msg.sender, msg.value);
     }
 
@@ -122,4 +137,13 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     function setFundingReward(uint256 _newReward) external onlyOwner {
         fundingReward = _newReward;
     }
+
+function RetrieveAllProjects() external view returns(ResearchProject[] memory){
+        ResearchProject[] memory allprojects = new ResearchProject[](nextProjectId);
+        for(uint256 i = 0; i < nextProjectId; i++){
+             allprojects[i] = projects[i];
+        }
+        return allprojects;
+    }
+
 }
