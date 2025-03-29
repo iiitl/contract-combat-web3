@@ -18,7 +18,7 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     
     uint256 private _nextTokenId;
     mapping(uint256 => Research) public researchData;
-    mapping(uint256 => Collaborator) public collaborators;
+    mapping(uint256 => Collaborator[]) public collaborators;
     mapping(address => uint256[]) public userCollaborations;
     
     uint256 public updateReward = 100 * 10**18;
@@ -45,6 +45,7 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     
     function updateResearch(uint256 _tokenId, string memory _newMetadataURI) external {
         require(_isOwnerOrCollaborator(_tokenId, msg.sender), "Not authorized");
+        require(_exists(_tokenId),"Research doesn't exist");
         
         Research storage research = researchData[_tokenId];
         research.currentVersion++;
@@ -56,15 +57,29 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     
     function getLatestResearch(uint256 _tokenId) external view returns (string memory, string memory, uint256) {
         Research storage research = researchData[_tokenId];
+        require(_exists(_tokenId), "Research doesn't exist");
         return (research.title, research.versionHistory[research.currentVersion], research.currentVersion);
     }
     
     function getResearchVersion(uint256 _tokenId, uint256 _version) external view returns (string memory) {
         require(_version > 0 && _version <= researchData[_tokenId].currentVersion, "Invalid version");
+        require(_exists(_tokenId), "Research doesn't exist");
         return researchData[_tokenId].versionHistory[_version];
     }
     
     function assignCollaborator(uint256 _tokenId, address _collaborator, uint64 _expires) external {
+         require(ownerOf(_tokenId) == msg.sender, "Only owner can add collaborators");
+    require(_expires > block.timestamp, "Block must expire in the future");
+
+    Collaborator[] storage collabs = collaborators[_tokenId];
+    for (uint i = 0; i < collabs.length; i++) {
+        require(collabs[i].collaborator != _collaborator, "Already a collaborator");
+    }
+    
+    collaborators[_tokenId].push(Collaborator(_collaborator, _expires));
+    userCollaborations[_collaborator].push(_tokenId);
+    
+    emit CollaboratorAssigned(_tokenId, _collaborator, _expires);
     
     }
     
@@ -73,10 +88,23 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     function _isOwnerOrCollaborator(uint256 _tokenId, address _account) public view returns (bool) {
+         if (ownerOf(_tokenId) == _account) {
+        return true;
+    }
+    
+    Collaborator[] storage collabs = collaborators[_tokenId];
+     for (uint i = 0; i < collabs.length; i++) {
+        if (collabs[i].collaborator == _account && collabs[i].expires >= block.timestamp) {
+            return true;
+        }
+    }
+    return false;
     
     }
+
     
     function setUpdateReward(uint256 _newReward) external onlyOwner {
         updateReward = _newReward;
+         emit UpdateRewardChanged(_newReward);
     }
 }
