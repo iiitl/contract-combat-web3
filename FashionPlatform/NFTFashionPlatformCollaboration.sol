@@ -26,15 +26,46 @@ contract NFTFashionPlatformCollaboration is NFTFashionPlatformCore {
 
     // Existing Collaboration Functions
 
-    function uploadDesignWithCollaboration(
-        string memory _tokenURI,
-        address[] memory _collaborators,
-        uint256[] memory _shares
-    ) external onlyRegisteredArtist {
+   function uploadDesignWithCollaboration(
+    string memory _tokenURI,
+    address[] memory _collaborators,
+    uint256[] memory _shares
+) external onlyRegisteredArtist {
+    require(_collaborators.length > 0, "At least one collaborator required.");
+    require(_collaborators.length == _shares.length, "Mismatched collaborators and shares.");
     
+    uint256 totalShare = 0;
+    for (uint256 i = 0; i < _shares.length; i++) {
+        totalShare += _shares[i];
     }
+    require(totalShare == 100, "Total shares must sum to 100%.");
 
+    uint256 newTokenId = tokenCounter;
+    _mint(msg.sender, newTokenId);
+    _setTokenURI(newTokenId, _tokenURI);
+    
+    designs[newTokenId] = Design({
+        tokenId: newTokenId,
+        designURI: _tokenURI,
+        creator: msg.sender,
+        category: "General",
+        designType: "Clothing",
+        price: 0,
+        likes: 0
+    });
 
+    collaborations[newTokenId] = Collaboration({
+        tokenId: newTokenId,
+        collabURI: _tokenURI,
+        collaborators: _collaborators,
+        shares: _shares
+    });
+
+    userOwnedDesigns[msg.sender].push(newTokenId);
+    tokenCounter++;
+
+    emit CollaborationCreated(newTokenId, _collaborators, _shares);
+}
 
     // Profit distribution function
     function distributeProfit(uint256 _tokenId, uint256 _amount) internal {
