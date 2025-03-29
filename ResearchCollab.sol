@@ -27,8 +27,7 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     event ResearchUpdated(uint256 indexed tokenId, uint256 newVersion, string newMetadataURI);
     event CollaboratorAssigned(uint256 indexed tokenId, address indexed collaborator, uint64 expires);
     
-    constructor() ERC721("ResearchNFT", "RSCNFT") Ownable(msg.sender) {
-    }
+    constructor() ERC721("ResearchNFT", "RSCNFT") Ownable(msg.sender) {}
     
     function createResearch(string memory _title, string memory _metadataURI) external {
         uint256 tokenId = _nextTokenId++;
@@ -65,7 +64,18 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     function assignCollaborator(uint256 _tokenId, address _collaborator, uint64 _expires) external {
-    
+        require(ownerOf(_tokenId) == msg.sender, "Only owner can assign collaborator");
+        require(_collaborator != address(0), "Invalid collaborator address");
+        require(_expires > block.timestamp, "Expiration must be in the future");
+        
+        collaborators[_tokenId] = Collaborator({
+            collaborator: _collaborator,
+            expires: _expires
+        });
+        
+        userCollaborations[_collaborator].push(_tokenId);
+        
+        emit CollaboratorAssigned(_tokenId, _collaborator, _expires);
     }
     
     function getCollaborations(address _user) external view returns (uint256[] memory) {
@@ -73,7 +83,14 @@ contract ResearchCollab is ERC721URIStorage, Ownable {
     }
     
     function _isOwnerOrCollaborator(uint256 _tokenId, address _account) public view returns (bool) {
-    
+        if (ownerOf(_tokenId) == _account) {
+            return true;
+        }
+        if (collaborators[_tokenId].collaborator == _account && collaborators[_tokenId].expires > block.timestamp) {
+    return true;
+    }
+    return false;
+
     }
     
     function setUpdateReward(uint256 _newReward) external onlyOwner {
