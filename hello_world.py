@@ -13,4 +13,4 @@ class MyContract:
 
     @gl.public.write
     def write_method(self,new_value:str) -> None:
-        self.variable = "world"
+        self.variable = new_value
