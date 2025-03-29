@@ -95,7 +95,8 @@ enum DataKey {
     Requests(BytesN<32>),
     UserToNft(Address),
     NftToUser(Address),
-    PlatformFee,
+    TblReqs(BytesN<32>),    // Stores mapping of table ID → list of request IDs
+    ReqToTbl(BytesN<32>), // Stores reverse mapping of request ID → table ID
     TrackIdCounter,
     TableIdCounter,
     RequestIdCounter,
@@ -924,9 +925,56 @@ impl MetaJuke {
         members
     }
 
-    pub fn get_table_requests(env: Env, table_id: BytesN<32>) -> Vec<TrackRequest> {
-      
+pub fn get_reqs(env: Env, tbl_id: BytesN<32>) -> Vec<TrackRequest> {
+    if !env.storage().instance().has(&DataKey::Tables(tbl_id.clone())) {
+        panic!("Invalid table");
+    }// basicallly this is for Table Validation , its necessary to check if the request that will go , goes in the right table only 
+
+/* 
+Checks if table exists in storage
+clone() creates a safe copy of the ID
+Panics (reverts transaction) if table doesn't exist
+*/
+ 
+
+// this is to Get Request IDs
+    let req_ids: Vec<BytesN<32>> = env
+        .storage()
+        .instance()
+        .get(&DataKey::TblReqs(tbl_id))
+        .unwrap_or_else(|| Vec::new(&env)); // unwrap_or_else returns empty vector if no requests exist
+
+        
+    let mut reqs = Vec::new(&env);// this makes an empty vector to store results 
+    for id in req_ids.iter() {
+        if let Some(r) = env.storage().instance().get(&DataKey::Requests(*id)) {
+            reqs.push_back(r);
+        }
     }
+    reqs
+}
+
+fn update_indexes(env: &Env, tbl: &BytesN<32>, req: &BytesN<32>) {
+    let mut tbl_reqs: Vec<BytesN<32>> = env
+        .storage()
+        .instance()
+        .get(&DataKey::TblReqs(tbl.clone()))
+        .unwrap_or_else(|| Vec::new(env));
+    
+    tbl_reqs.push_back(req.clone());
+
+    // this saves updated list 
+    env.storage()
+        .instance()
+        .set(&DataKey::TblReqs(tbl.clone()), &tbl_reqs);
+
+
+    // i have created this only for the complexity of the func to become O(1) from O(n).
+    // because of this , gas cost will reduce and optimal use of gas cost will happen
+    env.storage()
+        .instance()
+        .set(&DataKey::ReqToTbl(req.clone()), tbl);
+}
 
     
     pub fn update_artist_verification(env: Env, admin: Address, artist: Address, verified: bool) {
