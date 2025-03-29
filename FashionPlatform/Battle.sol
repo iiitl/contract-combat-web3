@@ -63,13 +63,56 @@ contract Battle is ERC721URIStorage, Ownable(msg.sender) {
     }
 
     function submitDesign(uint256 battleId, string memory designURI) external {
-   
+        require(battles[battleId].startTime != 0, "The battle doestn't exist!");
+        require(block.timestamp >= battles[battleId].startTime, "The battle has not started yet!");
+        require(block.timestamp <= battles[battleId].endTime, "Battle Ended");
+        require(bytes(designURI).length > 0, "Desgin URI cannot be empty");
 
+        Battle storage battle = battles[battleId];
+        uint256 designId = battle.designCount;
+
+        battle.designs[designId] = Design({
+            creator: msg.sender,
+            designURI: designURI,
+            votes: 0
+        });
+        battle.designCount++;
+
+        emit DesignSubmitted(battleId, designId, msg.sender, designURI);
+    }
     function vote(uint256 battleId, uint256 designId) external {
-       
+        require(battles[battleId].startTime != 0, "The battle doestn't exist!");
+        require(block.timestamp >= battles[battleId].startTime, "The battle has not started yet!");
+        require(block.timestamp <= battles[battleId].endTime, "Battle Ended");
+        require(designId < battles[battleId].designCount, "Enter the valid Design ID");
+        require(!battles[battleId].hasVoted[msg.sender], "Already voted");
+
+        Battle storage battle = battles[battleId];
+        battle.designs[designId].votes++;
+        battle.hasVoted[msg.sender] = true;
+
+        emit Voted(battleId, designId, msg.sender);
     }
 
     function declareWinner(uint256 battleId) external {
-     
+        require(battles[battleId].startTime != 0, "Battle doesn't exist!");
+        require(block.timestamp > battles[battleId].endTime, "Battle is still ON");
+        require(!battles[battleId].ended, "Winner already declared");
+        require(battles[battleId].designCount > 0, "No designs submitted");
+
+        Battle storage battle = battles[battleId];
+        battle.ended = true;
+
+        uint256 winningDesignId;
+        uint256 maxVotes;
+
+        for (uint256 i=0; i<battle.designCount; i++){
+            if(battle.designs[i].votes > maxVotes){
+                maxVotes = battle.designs[i].votes;
+                winningDesignId = i;
+            }
+        }
+
+        emit WinnerDeclared(battleId, winningDesignId, battle.designs[winningDesignId].creator);
     }
 }
