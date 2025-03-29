@@ -66,14 +66,33 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
             "Invalid category"
         );
         require(
-            keccak256(abi.encodePacked(_designType)) == keccak256(abi.encodePacked("Clothing")) ||
-            keccak256(abi.encodePacked(_designType)) == keccak256(abi.encodePacked("Fabric")),
-            "Invalid design type"
-        );
+        keccak256(abi.encodePacked(_designType)) == keccak256(abi.encodePacked("Clothing")) ||
+        keccak256(abi.encodePacked(_designType)) == keccak256(abi.encodePacked("Fabric")),
+        "Invalid design type"
+    );
         require(_price > 0, "Price must be greater than 0.");
 
+        uint256 newTokenId = tokenCounter;
+        _mint(msg.sender, newTokenId);
+        _setTokenURI(newTokenId, _tokenURI);
 
-    }
+    designs[newTokenId] = Design({
+        tokenId: newTokenId,
+        designURI: _tokenURI,
+        creator: msg.sender,
+        category: _category,
+        designType: _designType,
+        price: _price,
+        likes: 0
+    });
+
+        userOwnedDesigns[msg.sender].push(newTokenId);
+
+        tokenCounter++;
+    
+        emit DesignUploaded(newTokenId, msg.sender, _category, _designType);
+   
+   }
 
     function buyDesign(uint256 _tokenId) external payable {
         Design memory design = designs[_tokenId];
