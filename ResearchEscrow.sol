@@ -16,6 +16,7 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         uint256 deadline;
         bool funded;
         bool fundsReleased;
+        bool refunded;
     }
 
     uint256 private nextProjectId;
@@ -30,9 +31,16 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     event Funded(uint256 indexed projectId, address indexed backer, uint256 amount);
     event FundsReleased(uint256 indexed projectId, uint256 amount);
     event Refunded(uint256 indexed projectId, address indexed backer, uint256 amount);
+    event RewardDistributed(address indexed recipient, uint256 amount);
+    event StuckFundsRecovered(address indexed owner, uint256 amount);
 
-    constructor( ) Ownable(msg.sender){
+    constructor(address _rewardToken) Ownable(msg.sender){
         rewardToken = IERC20(_rewardToken);
+    }
+
+    // Prevent accidental ETH transfers
+    receive() external payable {
+        revert("Direct ETH transfers not allowed");
     }
 
     function startResearchCrowdfunding(string memory _title, uint256 _targetAmount, uint256 _duration) external {
@@ -49,6 +57,7 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
             deadline: block.timestamp + _duration,
             funded: false,
             fundsReleased: false
+            refunded: false
         });
 
         emit ProjectCreated(projectId, _title, msg.sender, _targetAmount, block.timestamp + _duration);
@@ -87,8 +96,8 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         project.fundsReleased = true;
         uint256 amount = project.currentAmount;
 
-        // External interaction last
-        payable(project.creator).transfer(amount);
+       (bool success, ) = payable(project.creator).call{value: amount}("");
+        require(success, "Transfer failed");
 
         emit FundsReleased(_projectId, amount);
     }
@@ -97,17 +106,30 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         ResearchProject storage project = projects[_projectId];
         require(block.timestamp >= project.deadline, "Crowdfunding is still ongoing");
         require(!project.funded, "Project reached funding goal");
+        require(!project.refunded, "Refund already processed");
         
         uint256 refundAmount = contributions[_projectId][msg.sender];
         require(refundAmount > 0, "No contributions found");
 
         // Update state before transfer
         contributions[_projectId][msg.sender] = 0;
-        
-        // External interaction last
-        payable(msg.sender).transfer(refundAmount);
+        project.refunded = true;
+
+        (bool success, ) = payable(msg.sender).call{value: refundAmount}("");
+        require(success, "Transfer failed");
 
         emit Refunded(_projectId, msg.sender, refundAmount);
+    }
+
+    // to recover stuck ETH
+    function recoverStuckFunds() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No stuck funds available");
+
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Transfer failed");
+
+        emit StuckFundsRecovered(owner(), balance);
     }
 
     function getResearchProject(uint256 _projectId) external view returns (
@@ -122,6 +144,7 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
             project.deadline,
             project.funded,
             project.fundsReleased
+            project.refunded
         );
     }
 
