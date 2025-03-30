@@ -432,7 +432,31 @@ impl MetaJuke {
         track_id: BytesN<32>,
         table_id: BytesN<32>,
     ) -> BytesN<32> {
-        
+         // VERIFYING TABLE'S EXISTENCE
+    if !env.storage().has(&table_id) {
+        panic!("table does not exist");
+    }
+    // verifying if user has permission 
+    let table_owner: Address = env.storage().get(&table_id).unwrap().unwrap();
+    if requester != table_owner {
+        panic!("requester is not the table owner");
+    }
+    // Generating a unique request ID [combining table_id + track_id + random component] , like concat them . 
+    let mut reqid_data = Bytes::new(&env);
+    reqid_data.append(&table_id.clone().into());
+    reqid_data .append(&track_id.clone().into());
+    reqid_data .append(&env.prng().gen::<BytesN<16>>().into());
+    let request_id = env.crypto().sha256(&reqid_data );
+    // STORING REQUEST DETAILS 
+    let request_key = DataKey::Request(request_id.clone());
+    let request = TrackRequest {
+        requester,
+        track_id,
+        table_id,
+        fulfilled: false,
+    };
+    env.storage().set(&request_key, &request);
+        request_id
     }
 
     pub fn vote_to_skip(env: Env, user: Address, table_id: BytesN<32>) -> bool {
