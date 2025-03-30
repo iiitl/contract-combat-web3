@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 from genlayer import *
 
 @gl.contract
@@ -12,5 +13,6 @@ class MyContract:
         return self.variable
 
     @gl.public.write
-    def write_method(self,new_value:str) -> None:
-        self.variable = "world"
+    def write_method(self, new_value: str) -> None:
+        self.variable = new_value 
+        
