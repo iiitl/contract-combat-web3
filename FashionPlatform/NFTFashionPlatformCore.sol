@@ -71,6 +71,25 @@ contract NFTFashionPlatformCore is ERC721URIStorage, Ownable {
             "Invalid design type"
         );
         require(_price > 0, "Price must be greater than 0.");
+         uint256 newTokenId = tokenCounter;
+
+    _safeMint(msg.sender, newTokenId);  // Mint the NFT to the artist (creator)
+
+   
+    designs[newTokenId] = Design({
+        tokenId: newTokenId,
+        designURI: _tokenURI,  // Set the URI for the design
+        creator: msg.sender,  // The artist (creator) is the owner
+        category: _category,  // Category can be either "General" or "Premium"
+        designType: _designType,  // Type can be either "Clothing" or "Fabric"
+        price: _price,  // Price set for the design
+        likes: 0  // Initial likes are set to 0
+    });
+
+    
+    tokenCounter++;
+
+    emit DesignUploaded(newTokenId, msg.sender, _category, _designType);
 
 
     }
