@@ -27,9 +27,12 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     event Funded(uint256 indexed projectId, address indexed backer, uint256 amount);
     event FundsReleased(uint256 indexed projectId, uint256 amount);
     event Refunded(uint256 indexed projectId, address indexed backer, uint256 amount);
+    event FundsRetrieved(address indexed owner, uint256 amount);
 
     constructor( ) Ownable(msg.sender){
     }
+
+    receive() external payable {}
 
     function startResearchCrowdfunding(string memory _title, uint256 _targetAmount, uint256 _duration) external {
         require(_targetAmount > 0, "Target amount must be greater than zero");
@@ -76,7 +79,7 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         // Update state before transfer
         project.fundsReleased = true;
         uint256 amount = project.currentAmount;
-
+        project.currentAmount = 0;
         // External interaction last
         payable(project.creator).transfer(amount);
 
@@ -93,11 +96,20 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
 
         // Update state before transfer
         contributions[_projectId][msg.sender] = 0;
+        project.currentAmount -= refundAmount;
         
         // External interaction last
         payable(msg.sender).transfer(refundAmount);
 
         emit Refunded(_projectId, msg.sender, refundAmount);
+    }
+
+    function retrieveStuckFunds() external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to retrieve");
+
+        payable(owner()).transfer(balance);
+        emit FundsRetrieved(owner(), balance);
     }
 
     function getResearchProject(uint256 _projectId) external view returns (
