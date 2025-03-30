@@ -24,18 +24,15 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     
     uint256 public fundingReward = 50 * 10**18; // 50 tokens for funding a project
     IERC20 public rewardToken; // ERC-20 token for rewards
+
     
     event ProjectCreated(uint256 indexed projectId, string title, address creator, uint256 targetAmount, uint256 deadline);
     event Funded(uint256 indexed projectId, address indexed backer, uint256 amount);
     event FundsReleased(uint256 indexed projectId, uint256 amount);
     event Refunded(uint256 indexed projectId, address indexed backer, uint256 amount);
-    event RewardDistributed(address indexed recipient, uint256 amount);
-
-    constructor(address _rewardToken) Ownable(msg.sender) {
-        rewardToken = IERC20(_rewardToken);
-    }
 
     constructor( ) Ownable(msg.sender){
+        rewardToken = IERC20(_rewardToken);
     }
 
     function startResearchCrowdfunding(string memory _title, uint256 _targetAmount, uint256 _duration) external {
