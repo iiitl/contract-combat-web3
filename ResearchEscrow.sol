@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract ResearchEscrow is ReentrancyGuard, Ownable {
@@ -22,11 +23,17 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
     mapping(uint256 => mapping(address => uint256)) public contributions; 
     
     uint256 public fundingReward = 50 * 10**18; // 50 tokens for funding a project
+    IERC20 public rewardToken; // ERC-20 token for rewards
     
     event ProjectCreated(uint256 indexed projectId, string title, address creator, uint256 targetAmount, uint256 deadline);
     event Funded(uint256 indexed projectId, address indexed backer, uint256 amount);
     event FundsReleased(uint256 indexed projectId, uint256 amount);
     event Refunded(uint256 indexed projectId, address indexed backer, uint256 amount);
+    event RewardDistributed(address indexed recipient, uint256 amount);
+
+    constructor(address _rewardToken) Ownable(msg.sender) {
+        rewardToken = IERC20(_rewardToken);
+    }
 
     constructor( ) Ownable(msg.sender){
     }
@@ -62,9 +69,15 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         
         if (project.currentAmount >= project.targetAmount) {
             project.funded = true;
+            distributeFundingReward(msg.sender);
         }
 
         emit Funded(_projectId, msg.sender, msg.value);
+    }
+
+    function distributeFundingReward(address recipient) internal {
+        require(rewardToken.transfer(recipient, fundingReward), "Reward transfer failed");
+        emit RewardDistributed(recipient, fundingReward);
     }
 
     function releaseFunds(uint256 _projectId) external nonReentrant {
@@ -115,11 +128,23 @@ contract ResearchEscrow is ReentrancyGuard, Ownable {
         );
     }
 
+    function getAllProjects() external view returns (ResearchProject[] memory) {
+        ResearchProject[] memory allProjects = new ResearchProject[](nextProjectId);
+        for (uint256 i = 1; i <= nextProjectId; i++) {
+            allProjects[i - 1] = projects[i];
+        }
+        return allProjects;
+    }
+
     function getUserContribution(uint256 _projectId, address _user) external view returns (uint256) {
         return contributions[_projectId][_user];
     }
     
     function setFundingReward(uint256 _newReward) external onlyOwner {
         fundingReward = _newReward;
+    }
+
+    function setRewardToken(address _rewardToken) external onlyOwner {
+        rewardToken = IERC20(_rewardToken);
     }
 }
